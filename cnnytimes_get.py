@@ -10,8 +10,19 @@ import xmltodict
 
 n=0
 
-l='https://rss.dw.com/rdf/rss-chi-all'
-l2='https://www.dw.com/zh'
+def english2date(a):
+    d=re.findall('\d+',a)
+    y=d[1]
+    dd=d[0]
+    mo=a.split(' ')[1]
+    m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    for b in range(len(m)):
+        if mo==m[b]:
+            mo=b+1
+    return'-'.join([y,str(mo).rjust(2).replace(' ','0'),dd.rjust(2).replace(' ','0')])
+
+l='https://cn.nytimes.com/rss/'
+l2='https://cn.nytimes.com'
 d=str(datetime.today()-timedelta(days=1)).split(' ')[0]
 if not os.path.exists('index.list'):
     h=rg.rget(l).text
@@ -19,9 +30,27 @@ if not os.path.exists('index.list'):
     f=open('index.json','w+');f.write(json.dumps(hl));f.close()
 else:
     f=open('index.json','r');hl=json.loads(f.read());f.close()
-#title,source,description,time,subject,id,subjects,keywords,text,videos,images,publisher,author
-lmt={'title':'title','source':'link','description':'description','time':'dc:date','subject':'dc:subject','id':'dwsyn:contentID','language':'dc:language'}
-hl=[{a:b[lmt[a]]for a in lmt.keys()}for b in hl['rdf:RDF']['item']]
+#title,source,description,time,text,type,images,publisher,creator,publisher,category
+lmt={'title':'title','source':'link','description':'description','time':'pubDate','creator':'dc:creator','category':'category'}
+nhl=[]
+for b in hl['rss']['channel']['item']:
+    i={}
+    for a in lmt.keys():
+        i[a]=b[lmt[a]]
+        if a=='source':
+            i[a]=i[a].split('?')[0]
+        if a=='time':
+            i[a]=i[a].split(', ')[1]
+            d=' '.join(i[a].split(' ')[:3])
+            t=i[a].split(' ')[3]
+            z=i[a].split(' ')[-1]
+            d=english2date(d)
+            i[a]='%sT%s%s:%s'%(d,t,z[:3],z[-2:])
+        if a=='description':
+            i[a]=bs(i[a],'html.parser').get_text()
+    nhl.append(i)
+
+hl=nhl
 
 print('\n'.join([repr(a)for a in hl]))
 
@@ -33,65 +62,29 @@ if len(dr)==0:
     for a in range(len(hl)):
         i=hl[a]
         t=rg.rget(i['source']).text
-        sr=bs(t,'html.parser')
-        s=sr.find('div',{'class':'col3'})
-        mt=['publisher','author']
-        i0={x:s.find('meta',{'name':x})for x in mt}
+        s=bs(t,'html.parser')
+        ms=[['og:type','type'],['article:publisher','publisher']]
+        i0={b[1]:s.find('meta',{'property':b[0]}).get('content')for b in ms}
         i.update(i0)
-        i['videos']=[]
-        vs=[v for v in s.select('video[id*="vjs_video"]')if v.find('video-js')]
-        lvs=len(vs)
-        ni=0
-        for o in vs:
-            ni+=1
-            nno=s.new_tag('a')
-            ur=o.select('video[src*="http"]').find('source').get('src')
-            if not ur:continue
-            i['videos'].append(ur)
-            nno.string='Video-%s-Link：%s'%(str(ni).rjust(len(str(lvs))).replace(' ','0'),ur)
-            nno['href']=ur
-            o.replace_with(nno)
-        comment=s.find(text=lambda text:isinstance(text,Comment)and'detail_toolbox'in text)
-        tools={'subjects':1,
-               'keywords':2}
-        for e in tools.keys():
-            dd=comment.find_next('div')
-            while True:
-                if dd.find('ul',{'class':'smallList'}):break
-                dd=dd.find_next('div')
-            dd=dd.find_all('li')
-            i[e]=[d.string for d in dd[tools[e]].find_all('a')]
-        ps=[]
-        st=[z for z in s.find('div',{'class':'longText'}).contents if z]
-        nst=[]
-        st=[str(z)for z in st]
-        for z in st:
-            if z.find('年德國之聲版權聲明')!=-1:
-                break
-            if z.find('年德国之声版权声明')!=-1:
-                break
-            nst.append(z)
-        nst=[z for z in nst if(z!=re.search('\s*',z)[0])]
-        st=''.join(nst)
-        si=s.find('div',{'class':'picBox full'})
-        if si:
-            sa=si.find('a')
-            sa['href']=sa['link']
-            del sa['link'],sa['class'],sa['rel'],sa['style']
-            sn=''.join([str(si),st])
-        s=bs(sn,'html.parser')if si else s
-        invalid_tags=['div']
+
+        im0=str(s.find('figure',{'class':'article-span-photo'}).find('img'))
+        tt=str(s.find('section',{'class':'article-body'}))
+        ta='%s\n%s'%(im0,tt)
+
+        s=bs(ta,'html.parser')
+
+        for x in s.find_all('div',{'class':'article-paragraph'}):
+            n=s.new_tag('p')
+            n.contents=x.contents
+            x.replace_with(n)
+
+        invalid_tags=['div','section','figure']
         for tag in invalid_tags:
             for match in s.findAll(tag):
                 match.replaceWithChildren()
         s.prettify()
-        i['text']=str(s)
 
-        ll=[]
-        for x in i['videos']:
-            if x not in ll:
-                ll.append(x)
-        i['videos']=ll.copy()
+        i['text']=str(s)
 
         ls={'a':'href','img':'src'}
         s=bs(i['text'],'html.parser')
@@ -108,8 +101,9 @@ if len(dr)==0:
                 n.contents=co
                 b.replace_with(n)
 
-        for x in s.find_all('div',{'class':'col1'}):
-            x.decompose()
+        for x in s.find_all('small'):
+            if x.get_text()=='广告':
+                x.decompose()
 
         rmt=['h1']
         for z in rmt:
@@ -117,9 +111,6 @@ if len(dr)==0:
                 n=s.new_tag('h2')
                 n.string=x.string
                 x.replace_with(n)
-
-        for z in s.find_all('p'):
-            if'年德国之声版权声明'in z:z.decompose()
 
         im=[b.get('src').split('?')[0].replace('\n','')for b in s.find_all('img')]
         nim=[]
@@ -200,45 +191,35 @@ for a in os.walk('JSON-src'):
         t=re.sub('\\n{2,}','\\n',str(s.prettify()))
         t=hp.handle(t)
         t='\n\n'.join([z.replace('\n','').strip()for z in t.split('\n\n')if z])
-        #title,source,description,time,subject,id,subjects,keywords,text,videos,images,publisher,author
+        #title,source,description,time,text,type,images,publisher,creator,publisher,category
         t='''# %s
 
-Author: %s (Language: %s)
+Creator: %s
 
 Publisher: %s
 
-Time: %s
+Published Time: %s
 
 Description: %s
 
-Videos: %s
-
 Images: %s
 
-Subject: %s
+Category: %s
 
-Subjects: %s
-
-Keywords: %s
-
-ID: %s
+Type: %s
 
 <!--METADATA-->
 
 %s
 
 Source: %s'''%('%s...'%u[:96-3]if len(u:=h['title'])>96 else u,
-               h['author'],
-               h['language'],
+               h['creator'],
                h['publisher'],
                h['time'],
                h['description'],
-               json.dumps(['[%s](%s)'%('%s...'%u[:13]if len(u:=c.split('/')[-1])>16 else u,c)for c in h['videos']]),
                json.dumps(['[%s](%s)'%('%s...'%u[:13]if len(u:=c.split('/')[-1])>16 else u,c)for c in h['images']]),
-               h['subject'],
-               repr(h['subjects']),
-               repr(h['keywords']),
-               h['id'],
+               h['category'],
+               h['type'].title(),
                t,
                '[%s](%s)'%(h['source'],h['source']))
         if not os.path.exists(pa1:='MDs/%s.md'%b.split('.json')[0]):

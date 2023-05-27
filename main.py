@@ -114,7 +114,7 @@ if not os.path.exists('index.htm'):
             n+=1
     ht=ht.replace('src="../Images','src="Images')
     ht=ht.replace('src="../ConvertedIMGs','src="ConvertedIMGs')
-    f=open('index.htm','w+');f.write('<html><head><style>%s</style></head><body><img src="Head_Image.jpg" /><h1>Ukrainian-Russian War News</h1><h1>世界新闻新闻</h1><p><a href="index.pdf">[This lan. PDF]</a><a href="index.odt">[This lan. ODT]</a><a href="index.md.bin">[This lan. MD]</a><a href="index.txt">[This lan. TXT]</a><a href="index_list.txt">[This lan. TXT LIST]</a></p><p>Please select your language 请选择你的语言:</p><p><a href="index.htm">Origin</a> | %s</p>%s</body></html>'%('img{height: auto; width: auto\9; width:100%;}',' | '.join(['<a href="index_%s.htm">%s</a>'%(a,lans[a])for a in aft]),ht));f.close()
+    f=open('index.htm','w+');f.write('<html><head><style>%s</style></head><body><img src="Head_Image.jpg" /><h1>World News</h1><h1>世界新闻</h1><p><a href="index.pdf">[This lan. PDF]</a><a href="index.odt">[This lan. ODT]</a><a href="index.md.bin">[This lan. MD]</a><a href="index.txt">[This lan. TXT]</a><a href="index_list.txt">[This lan. TXT LIST]</a></p><p>Please select your language 请选择你的语言:</p><p><a href="index.htm">Origin</a> | %s</p>%s</body></html>'%('img{height: auto; width: auto\9; width:100%;}',' | '.join(['<a href="index_%s.htm">%s</a>'%(a,lans[a])for a in aft]),ht));f.close()
 if not os.path.exists('index.md.bin'):
     ht=''
     n=0
@@ -141,11 +141,11 @@ if not os.path.exists('index.txt'):
     os.system('soffice --headless --convert-to txt index.odt')
 if not os.path.exists('index_list.txt'):
     f=open('index.md.bin','r');t=f.read().split('<!--NEWS-->');f.close()
-    t2=['世界新闻新闻 World News %s\n\n=====每日中英多语世界新闻新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====\n'%(str(datetime.datetime.today()+datetime.timedelta(days=0)).split(' ')[0])]
+    t2=['世界新闻 World News %s\n\n=====每日中英多语世界新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====\n'%(str(datetime.datetime.today()+datetime.timedelta(days=0)).split(' ')[0])]
     for a in t:
         a=a.split('<!--METADATA-->')
         t2.append('%s\n%s'%([v for v in a[0].split('\n')if v][0].split('# ')[1],[v for v in a[1].split('\n')if v][-1].split('Source: ')[1].split('(')[1].split(')')[0]))
-    t2.append('\n=====每日中英多语世界新闻新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====')
+    t2.append('\n=====每日中英多语世界新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====')
     t='\n'.join(t2)
     f=open('index_list.txt','w+');f.write(t);f.close()
 def trans_cycle(t,de,sr,nm):
@@ -317,7 +317,7 @@ News Source: %s'''%(a['title'],
         f=open('index_%s.md.bin'%aft[y],'w+');f.write(re.sub('\\n[ ]+([#]+)[ ]+','\\n\\1 ',fmd.replace('这是给予的(','](').replace('! ','!')).replace('\n* [','\n['));f.close()
     if not os.path.exists('index_%s.htm'%aft[y]):
         f=open('index_%s.md.bin'%aft[y],'r');fmd=f.read();f.close()
-        f=open('index_%s.htm'%aft[y],'w+');f.write('<html><head><style>%s</style></head><body><img src="Head_Image.jpg" /><h1>Ukrainian-Russian War News</h1><h1>世界新闻新闻</h1><p><a href="index_%s.pdf">[This lan. PDF]</a><a href="index_%s.odt">[This lan. ODT]</a><a href="index_%s.md.bin">[This lan. MD]</a><a href="index_%s.txt">[This lan. TXT]</a><a href="index_list_%s.txt">[This lan. TXT LIST]</a></p><p>Please select your language 请选择你的语言:</p><p><a href="index.htm">Origin</a> | %s</p>%s</body></html>'%('img{height: auto; width: auto\9; width:100%;}',aft[y],aft[y],aft[y],aft[y],aft[y],' | '.join(['<a href="index_%s.htm">%s</a>'%(a,lans[a])for a in aft]),markdown.markdown(fmd)));f.close()
+        f=open('index_%s.htm'%aft[y],'w+');f.write('<html><head><style>%s</style></head><body><img src="Head_Image.jpg" /><h1>World News</h1><h1>世界新闻</h1><p><a href="index_%s.pdf">[This lan. PDF]</a><a href="index_%s.odt">[This lan. ODT]</a><a href="index_%s.md.bin">[This lan. MD]</a><a href="index_%s.txt">[This lan. TXT]</a><a href="index_list_%s.txt">[This lan. TXT LIST]</a></p><p>Please select your language 请选择你的语言:</p><p><a href="index.htm">Origin</a> | %s</p>%s</body></html>'%('img{height: auto; width: auto\9; width:100%;}',aft[y],aft[y],aft[y],aft[y],aft[y],' | '.join(['<a href="index_%s.htm">%s</a>'%(a,lans[a])for a in aft]),markdown.markdown(fmd)));f.close()
     if not os.path.exists('index_%s.odt'%aft[y]):
         markdown2odt.run('index_%s.md.bin'%aft[y],lans[aft[y]])
     if not os.path.exists('index_%s.pdf'%aft[y]):
@@ -326,11 +326,11 @@ News Source: %s'''%(a['title'],
         os.system('soffice --headless --convert-to txt index_%s.odt'%aft[y])
     if not os.path.exists('index_list_%s.txt'%aft[y]):
         f=open('index_%s.md.bin'%aft[y],'r');t=f.read().split('<!--NEWS-->');f.close()
-        t2=['世界新闻新闻 World News %s\n\n=====每日中英多语世界新闻新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====\n'%(str(datetime.datetime.today()+datetime.timedelta(days=0)).split(' ')[0])]
+        t2=['世界新闻 World News %s\n\n=====每日中英多语世界新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====\n'%(str(datetime.datetime.today()+datetime.timedelta(days=0)).split(' ')[0])]
         for a in t:
             a=a.split('<!--METADATA-->')
             t2.append('%s\n%s'%([v for v in a[0].split('\n')if v][0].split('# ')[1],[v for v in a[1].split('\n')if v][-1].split('Source: ')[1].split('(')[1].split(')')[0]))
-        t2.append('\n=====每日中英多语世界新闻新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====')
+        t2.append('\n=====每日中英多语世界新闻文本部分翻译可以访问网址=====\nhttps://worlnews.github.io/\n=====Daily translations of Chinese-English multilingual World News texts can be accessed at the website=====')
         t='\n'.join(t2)
         f=open('index_list_%s.txt'%aft[y],'w+');f.write(t);f.close()
 l=['HTMs','MDs','__pycache__','src','ConvertedIMGs','Images','index.md.bin','index.htm','index.odt','index.pdf','index.txt','index_list.txt']

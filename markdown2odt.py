@@ -90,6 +90,7 @@ def run(mdf,lan):
     t=t.replace('<...>','&lt;...>')
     t=t.replace('<长','&lt;长')
     t=t.replace('<Chang','&lt;Chang')
+    t=t.replace('H&M','H&amp;M')
     f=open('sample2/content.xml','w+');f.write(t);f.close()
     os.system('cd sample2;7z a a.zip .')
     shutil.move('sample2/a.zip','%s.odt'%'.'.join(mdf.split('.')[:-2]))
