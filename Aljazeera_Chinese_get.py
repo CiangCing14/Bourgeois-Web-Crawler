@@ -21,38 +21,53 @@ def english2date(a):
             mo=b+1
     return'-'.join([y,str(mo).rjust(2).replace(' ','0'),dd.rjust(2).replace(' ','0')])
 
-l='https://feeds.bbci.co.uk/zhongwen/simp/rss.xml'
-l2='https://www.bbc.com'
+he='''Host: chinese.aljazeera.net
+User-Agent: Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://chinese.aljazeera.net/news/
+content-type: application/json
+wp-site: chinese
+original-domain: chinese.aljazeera.net
+Connection: keep-alive
+Cookie: _splunk_rum_sid=%7B%22id%22%3A%22f43242c53e3df39c45df5080105173c4%22%2C%22startTime%22%3A1685269221500%7D; _ga_GHMSVDCBRB=GS1.1.1685269222.1.1.1685269379.0.0.0; _ga=GA1.2.730031887.1685269222; AMP_9e2bdeb55f=JTdCJTIyb3B0T3V0JTIyJTNBZmFsc2UlMkMlMjJkZXZpY2VJZCUyMiUzQSUyMjU0NTk2NDE5LTkxNjAtNGY2ZC1iMmQ1LTgzMWVlMTIyZjE5MyUyMiUyQyUyMmxhc3RFdmVudFRpbWUlMjIlM0ExNjg1MjY5Mzc4OTAwJTJDJTIyc2Vzc2lvbklkJTIyJTNBMTY4NTI2OTIyMjYwMCU3RA==; _cb=DGC1akCrsF54BbsnAw; _chartbeat2=.1685269222700.1685269378800.1.BN41ppCSBqhfCt2cNHjOwhTvxYtK.1; OptanonConsent=isGpcEnabled=0&datestamp=Sun+May+28+2023+10%3A23%3A00+GMT%2B0000+(Coordinated+Universal+Time)&version=202209.1.0&isIABGlobal=false&hosts=&consentId=06978715-62df-4a5a-be56-6e90ab965e75&interactionCount=1&landingPath=NotLandingPage&groups=C0001%3A1%2CC0007%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1%2CC0005%3A1&geolocation=JP%3B13&AwaitingReconsent=false; _gcl_au=1.1.351358514.1685269223; __qca=P0-2062297997-1685269224300; AMP_MKTG_9e2bdeb55f=JTdCJTdE; _gid=GA1.2.372382107.1685269231; OptanonAlertBoxClosed=2023-05-28T10:21:05.500Z; _ga_WFKEPR3HG4=GS1.1.1685269271.1.0.1685269271.0.0.0; _cb_svref=null
+TE: Trailers'''
+
+head={}
+
+for a in he.split('\n'):
+    head[a.split(': ')[0]]=a.split(': ')[1]
+
+l0='https://chinese.aljazeera.net/news/'
+l='https://chinese.aljazeera.net/graphql?wp-site=chinese&operationName=ArchipelagoAjeSectionPostsQuery&variables=%7B%22category%22%3A%22news%22%2C%22categoryType%22%3A%22categories%22%2C%22postTypes%22%3A%5B%22blog%22%2C%22episode%22%2C%22opinion%22%2C%22post%22%2C%22video%22%2C%22external-article%22%2C%22gallery%22%2C%22podcast%22%2C%22longform%22%2C%22liveblog%22%5D%2C%22quantity%22%3A10%2C%22offset%22%3A[NUM]4%7D&extensions=%7B%7D'
+l2='https://chinese.aljazeera.net'
 d=str(datetime.today()-timedelta(days=1)).split(' ')[0]
-if not os.path.exists('index.list'):
-    h=rg.rget(l).text
-    hl=xmltodict.parse(h)
-    f=open('index.json','w+');f.write(json.dumps(hl));f.close()
+hl=[]
+if not os.path.exists('000000.list'):
+    for a in range(5):
+        if a==0:
+            h=rg.rget(l0).text
+            s=bs(h,'html.parser')
+            h=['%s%s'%(l2,b.find('a').get('href'))for b in s.find_all('article')]
+        else:
+            h=rg.rget(l.replace('[NUM]',str(a)),hea=head).json()
+            h=['%s%s'%(l2,b['link'])for b in h['data']['articles']]
+        hl.extend(h)
+        f=open('%s.list'%(str(a).rjust(6).replace(' ','0')),'w+');f.write(repr(h));f.close()
 else:
-    f=open('index.json','r');hl=json.loads(f.read());f.close()
-#title,source,description,time,text,type,images,publisher,author,tags,published time,modified time
-lmt={'title':'title','source':'link','description':'description','time':'pubDate'}
-nhl=[]
-for b in hl['rss']['channel']['item']:
-    i={}
-    for a in lmt.keys():
-        i[a]=b[lmt[a]]
-        if a=='source':
-            i[a]=i[a].split('?')[0]
-        if a=='time':
-            i[a]=i[a].split(', ')[1]
-            d2=' '.join(i[a].split(' ')[:3])
-            t=i[a].split(' ')[3]
-            z=i[a].split(' ')[-1]
-            d2=english2date(d2)
-            i[a]='%sT%s%s:%s'%(d2,t,z[:3],z[-2:])
-        if a=='description':
-            i[a]=bs(i[a],'html.parser').get_text()
-    nhl.append(i)
-
-hl=nhl
-
-print('\n'.join([repr(a)for a in hl]))
+    fl=[]
+    for a in os.walk(sys.path[0]):
+        for b in a[2]:
+            if a[0]==sys.path[0]:
+                if b[-4:]=='list':
+                    fl.append([int(b[:-5]),'%s/%s'%(a[0],b)])
+    fl.sort(key=lambda x:x[0])
+    fl=[a[1]for a in fl]
+    for a in fl:
+        f=open(a,'r');h=eval(f.read());f.close()
+        hl.extend(h)
+print('\n'.join([a for a in hl]))
 
 if not os.path.exists('JSON-src'):os.mkdir('JSON-src')
 dr=os.listdir('JSON-src')
@@ -60,41 +75,36 @@ if len(dr)==0:
     nn=0
     ed=''
     for a in range(len(hl)):
-        i=hl[a]
-        t=rg.rget(i['source']).text
+        i={}
+        t=rg.rget(hl[a]).text
+        #type,publisher,source,topics,keywords,published time,modified time,author,title,description,text,images
         s=bs(t,'html.parser')
+
         ms=[['og:type','type']]
         i0={b[1]:s.find('meta',{'property':b[0]}).get('content')for b in ms}
         i.update(i0)
 
-        i0={'tags':[b.get('content')for b in s.find_all('meta',{'name':'article:tag'})],
-            'publisher':'BBC News 中文'}
+        i0={'publisher':'Al Jazeera',
+            'source':hl[a]}
         i.update(i0)
 
-        ms=[['article:author','author'],['article:published_time','published time'],['article:modified_time','modified time']]
+        ms=[['topics','topics'],
+            ['keywords','keywords'],
+            ['publishedDate','published time'],
+            ['lastDate','modified time'],
+            ['sourceTaxonomy','author'],
+            ['pageTitle','title'],
+            ['description','description']]
         i0={b[1]:s.find('meta',{'name':b[0]}).get('content')for b in ms}
+        i0['topics']=i0['topics'].split(', ')
+        i0['keywords']=i0['keywords'].split(', ')
         i.update(i0)
-
-        s=bs(str(s.find('main')),'html.parser')
-
-        i['videos']=[]
-        vs=[v for v in s.select('iframe')]
-        lvs=len(vs)
-        ni=0
-        for o in vs:
-            ni+=1
-            nno=s.new_tag('a')
-            ur=o.get('src')
-            if not ur:continue
-            i['videos'].append('%s%s'%(l2,ur))
-            nno.string='Video-%s-Link：%s'%(str(ni).rjust(len(str(lvs))).replace(' ','0'),ur)
-            nno['href']=ur
-            o.replace_with(nno)
-
-        for x in s.children:
-            if(b:=x.find('div')):
-                if b.get('class')in['bbc-1151pbn ebmt73l0','e1j2237y6 bbc-q4ibpr ebmt73l0','etpldq00 bbc-oa9drk ebmt73l0','bbc-zvnee0 e1rfboeq6','']:
-                    x.decompose()
+        
+        tt0=str(s.find('figure',{'class':'article-featured-image'}))
+        tt1=str(s.find('div',{'class':'wysiwyg wysiwyg--all-content css-10ptoor'}))
+        if tt1=='None':tt1=str(s.find('div',{'class':'compact-featured-area__content'}))
+        tt='%s\n%s'%(tt0,tt1)
+        s=bs(tt,'html.parser')
 
         invalid_tags=['div','section','figure']
         for tag in invalid_tags:
@@ -103,12 +113,6 @@ if len(dr)==0:
         s.prettify()
 
         i['text']=str(s)
-
-        ll=[]
-        for x in i['videos']:
-            if x not in ll:
-                ll.append(x)
-        i['videos']=ll.copy()
 
         ls={'a':'href','img':'src'}
         s=bs(i['text'],'html.parser')
@@ -125,10 +129,6 @@ if len(dr)==0:
                 n.contents=co
                 b.replace_with(n)
 
-        for x in s.find_all('small'):
-            if x.get_text()=='广告':
-                x.decompose()
-
         rmt=['h1']
         for z in rmt:
             for x in s.findAll(z):
@@ -142,7 +142,7 @@ if len(dr)==0:
             if b not in nim:nim.append(b)
         i['images']=nim
         i['text']=re.sub('\\n{2,}','\\n',str(s.prettify()).strip())
-        dd=i['time']
+        dd=i['published time']
         if dd<d:break
         for z in i.keys():
             i[z]=i[z].strip()if isinstance(i[z],str)else i[z]
@@ -215,7 +215,7 @@ for a in os.walk('JSON-src'):
         t=re.sub('\\n{2,}','\\n',str(s.prettify()))
         t=hp.handle(t)
         t='\n\n'.join([z.replace('\n','').strip()for z in t.split('\n\n')if z])
-        #title,source,description,time,text,type,images,publisher,author,tags,published time,modified time
+        #type,publisher,source,topics,keywords,published time,modified time,author,title,description,text,images
         t='''# %s
 
 Author: %s
@@ -230,9 +230,9 @@ Description: %s
 
 Images: %s
 
-Videos: %s
+Topics: %s
 
-Tags: %s
+Keywords: %s
 
 Type: %s
 
@@ -247,8 +247,8 @@ Source: %s'''%('%s...'%u[:96-3]if len(u:=h['title'])>96 else u,
                h['modified time'],
                h['description'],
                json.dumps(['[%s](%s)'%('%s...'%u[:13]if len(u:=c.split('/')[-1])>16 else u,c)for c in h['images']]),
-               json.dumps(['[%s](%s)'%('%s...'%u[:13]if len(u:=c.split('/')[-1])>16 else u,c)for c in h['videos']]),
-               repr(h['tags']),
+               repr(h['topics']),
+               repr(h['keywords']),
                h['type'].title(),
                t,
                '[%s](%s)'%(h['source'],h['source']))

@@ -99,7 +99,7 @@ if len(dr)==0:
             ss=s.find_all(c)
             for b in ss:
                 v=b.find_all()
-                co=b.contents
+                co=b.contents.copy()
                 n=s.new_tag(c)
                 u=b.get(ls[c])
                 if not u:continue

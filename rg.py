@@ -11,8 +11,8 @@ def rget_cycle(a,to,st,rn):
     time.sleep(1)
     return rget(a,to,st,rn)
 
-def rget(a,to=10,st=False,rn=0):
-    try:return r.get(a,headers=he,timeout=to,stream=st)
+def rget(a,to=10,st=False,rn=0,hea=he):
+    try:return r.get(a,headers=hea,timeout=to,stream=st)
     except:return rget_cycle(a,to,st,rn)
 
 def rpost_cycle(a,d,to,st,rn):

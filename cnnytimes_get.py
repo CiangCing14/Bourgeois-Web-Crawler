@@ -41,11 +41,11 @@ for b in hl['rss']['channel']['item']:
             i[a]=i[a].split('?')[0]
         if a=='time':
             i[a]=i[a].split(', ')[1]
-            d=' '.join(i[a].split(' ')[:3])
+            d2=' '.join(i[a].split(' ')[:3])
             t=i[a].split(' ')[3]
             z=i[a].split(' ')[-1]
-            d=english2date(d)
-            i[a]='%sT%s%s:%s'%(d,t,z[:3],z[-2:])
+            d2=english2date(d2)
+            i[a]='%sT%s%s:%s'%(d2,t,z[:3],z[-2:])
         if a=='description':
             i[a]=bs(i[a],'html.parser').get_text()
     nhl.append(i)
@@ -92,7 +92,7 @@ if len(dr)==0:
             ss=s.find_all(c)
             for b in ss:
                 v=b.find_all()
-                co=b.contents
+                co=b.contents.copy()
                 n=s.new_tag(c)
                 u=b.get(ls[c])
                 if not u:continue
