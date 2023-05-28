@@ -51,6 +51,7 @@ for b in hl['rss']['channel']['item']:
     nhl.append(i)
 
 hl=nhl
+hl.sort(key=lambda x:x['time'],reverse=True)
 
 print('\n'.join([repr(a)for a in hl]))
 

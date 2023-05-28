@@ -22,6 +22,7 @@ else:
 #title,source,description,time,subject,id,subjects,keywords,text,videos,images,publisher,author
 lmt={'title':'title','source':'link','description':'description','time':'dc:date','subject':'dc:subject','id':'dwsyn:contentID','language':'dc:language'}
 hl=[{a:b[lmt[a]]for a in lmt.keys()}for b in hl['rdf:RDF']['item']]
+hl.sort(key=lambda x:x['time'],reverse=True)
 
 print('\n'.join([repr(a)for a in hl]))
 

@@ -21,8 +21,8 @@ def english2date(a):
             mo=b+1
     return'-'.join([y,str(mo).rjust(2).replace(' ','0'),dd.rjust(2).replace(' ','0')])
 
-l='https://feeds.bbci.co.uk/zhongwen/simp/rss.xml'
-l2='https://www.bbc.com'
+l='https://cn.wsj.com/zh-hans/rss'
+l2='https://cn.wsj.com'
 d=str(datetime.today()-timedelta(days=1)).split(' ')[0]
 if not os.path.exists('index.list'):
     h=rg.rget(l).text
@@ -30,8 +30,8 @@ if not os.path.exists('index.list'):
     f=open('index.json','w+');f.write(json.dumps(hl));f.close()
 else:
     f=open('index.json','r');hl=json.loads(f.read());f.close()
-#title,source,description,time,text,type,images,publisher,author,tags,published time,modified time
-lmt={'title':'title','source':'link','description':'description','time':'pubDate'}
+#type,categories,publisher,title,source,description,published time,modified time,created time,author,keywords,text,images
+lmt={'title':'title','source':'link','time':'pubDate'}
 nhl=[]
 for b in hl['rss']['channel']['item']:
     i={}
@@ -51,6 +51,7 @@ for b in hl['rss']['channel']['item']:
     nhl.append(i)
 
 hl=nhl
+hl.sort(key=lambda x:x['time'],reverse=True)
 
 print('\n'.join([repr(a)for a in hl]))
 
@@ -63,38 +64,30 @@ if len(dr)==0:
         i=hl[a]
         t=rg.rget(i['source']).text
         s=bs(t,'html.parser')
+        #type,categories,publisher,title,source,description,published time,modified time,created time,author,keywords,text,images
         ms=[['og:type','type']]
         i0={b[1]:s.find('meta',{'property':b[0]}).get('content')for b in ms}
         i.update(i0)
 
-        i0={'tags':[b.get('content')for b in s.find_all('meta',{'name':'article:tag'})],
-            'publisher':'BBC News 中文'}
+        i0={'categories':[b.get_text().strip()for b in s.find('div',{'class':'category'}).find_all('a')],
+            'publisher':'华尔街日报中文网'}
         i.update(i0)
 
-        ms=[['article:author','author'],['article:published_time','published time'],['article:modified_time','modified time']]
-        i0={b[1]:s.find('meta',{'name':b[0]}).get('content')for b in ms}
+        ms=[['article.summary','description'],
+            ['article.published','published time'],
+            ['article.updated','modified time'],
+            ['article.created','created time'],
+            ['author','author'],
+            ['keywords','keywords']]
+        i0={}
+        for b in ms:
+            if(ss:=s.find('meta',{'name':b[0]})):
+                i0[b[1]]=s.find('meta',{'name':b[0]}).get('content')
+            else:
+                i0[b[1]]='None'
         i.update(i0)
 
-        s=bs(str(s.find('main')),'html.parser')
-
-        i['videos']=[]
-        vs=[v for v in s.select('iframe')]
-        lvs=len(vs)
-        ni=0
-        for o in vs:
-            ni+=1
-            nno=s.new_tag('a')
-            ur=o.get('src')
-            if not ur:continue
-            i['videos'].append('%s%s'%(l2,ur))
-            nno.string='Video-%s-Link：%s'%(str(ni).rjust(len(str(lvs))).replace(' ','0'),ur)
-            nno['href']=ur
-            o.replace_with(nno)
-
-        for x in s.children:
-            if(b:=x.find('div')):
-                if b.get('class')in['bbc-1151pbn ebmt73l0','e1j2237y6 bbc-q4ibpr ebmt73l0','etpldq00 bbc-oa9drk ebmt73l0','bbc-zvnee0 e1rfboeq6','']:
-                    x.decompose()
+        s=bs(str(s.find('div',{'class':'wsj-snippet-body'})),'html.parser')
 
         invalid_tags=['div','section','figure']
         for tag in invalid_tags:
@@ -103,12 +96,6 @@ if len(dr)==0:
         s.prettify()
 
         i['text']=str(s)
-
-        ll=[]
-        for x in i['videos']:
-            if x not in ll:
-                ll.append(x)
-        i['videos']=ll.copy()
 
         ls={'a':'href','img':'src'}
         s=bs(i['text'],'html.parser')
@@ -215,8 +202,8 @@ for a in os.walk('JSON-src'):
         t=re.sub('\\n{2,}','\\n',str(s.prettify()))
         t=hp.handle(t)
         t='\n\n'.join([z.replace('\n','').strip()for z in t.split('\n\n')if z])
-        #title,source,description,time,text,type,images,publisher,author,tags,published time,modified time
-        t='''# %s
+        #type,categories,publisher,title,source,description,published time,modified time,created time,author,keywords,text,images
+        t='''# %s (Free Version)
 
 Author: %s
 
@@ -226,13 +213,15 @@ Published Time: %s
 
 Modified Time: %s
 
+Created Time: %s
+
 Description: %s
 
 Images: %s
 
-Videos: %s
+Categories: %s
 
-Tags: %s
+Keywords: %s
 
 Type: %s
 
@@ -245,10 +234,11 @@ Source: %s'''%('%s...'%u[:96-3]if len(u:=h['title'])>96 else u,
                h['publisher'],
                h['published time'],
                h['modified time'],
+               h['created time'],
                h['description'],
                json.dumps(['[%s](%s)'%('%s...'%u[:13]if len(u:=c.split('/')[-1])>16 else u,c)for c in h['images']]),
-               json.dumps(['[%s](%s)'%('%s...'%u[:13]if len(u:=c.split('/')[-1])>16 else u,c)for c in h['videos']]),
-               repr(h['tags']),
+               repr(h['categories']),
+               h['keywords'],
                h['type'].title(),
                t,
                '[%s](%s)'%(h['source'],h['source']))
